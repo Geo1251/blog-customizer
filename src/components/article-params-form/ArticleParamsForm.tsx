@@ -16,132 +16,135 @@ import {
 	backgroundColors,
 	contentWidthArr,
 	OptionType,
+	defaultArticleState,
 } from 'src/constants/articleProps';
 
 import styles from './ArticleParamsForm.module.scss';
 
 type ArticleParamsFormProps = {
-	currentStyles: ArticleStateType;
-	onApply: (newStyles: ArticleStateType) => void;
-	onReset: () => void;
-	isOpen: boolean;
-	onClose: () => void;
+	articleStyles: ArticleStateType;
+	setArticleStyles: (newStyles: ArticleStateType) => void;
+	isFormOpen: boolean;
+	toggleFormVisibility: () => void;
 };
 
 export const ArticleParamsForm = ({
-	currentStyles,
-	onApply,
-	onReset,
-	isOpen,
-	onClose,
+	articleStyles,
+	setArticleStyles,
+	isFormOpen,
+	toggleFormVisibility,
 }: ArticleParamsFormProps) => {
-	const [formState, setFormState] = useState<ArticleStateType>(currentStyles);
+	const [localStyles, setLocalStyles] =
+		useState<ArticleStateType>(articleStyles);
 	const formRef = useRef<HTMLFormElement>(null);
+	const arrowButtonRef = useRef<HTMLButtonElement>(null);
 
 	useEffect(() => {
-		setFormState(currentStyles);
-	}, [currentStyles]);
+		setLocalStyles(articleStyles);
+	}, [articleStyles]);
 
 	useEffect(() => {
-		if (!isOpen) return;
-
 		const handleClickOutside = (event: MouseEvent) => {
-			if (formRef.current && !formRef.current.contains(event.target as Node)) {
-				const arrowButtonElement = document.querySelector(
-					'[class*="arrowButton_arrow"]'
-				);
-
-				if (
-					arrowButtonElement &&
-					arrowButtonElement.contains(event.target as Node)
-				) {
-					return;
-				}
-				onClose();
+			if (
+				formRef.current &&
+				!formRef.current.contains(event.target as Node) &&
+				arrowButtonRef.current &&
+				!arrowButtonRef.current.contains(event.target as Node)
+			) {
+				toggleFormVisibility();
 			}
 		};
 
-		document.addEventListener('mousedown', handleClickOutside);
-		return () => {
-			document.removeEventListener('mousedown', handleClickOutside);
-		};
-	}, [isOpen, onClose]);
+		if (isFormOpen) {
+			document.addEventListener('mousedown', handleClickOutside);
+		}
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, [isFormOpen, toggleFormVisibility]);
 
 	const handleFieldChange = (
 		field: keyof ArticleStateType,
 		value: OptionType
 	) => {
-		setFormState((prev) => ({
+		setLocalStyles((prev) => ({
 			...prev,
 			[field]: value,
 		}));
 	};
 
-	const handleSubmit = (event: React.FormEvent) => {
+	const handleFormSubmit = (event: React.FormEvent) => {
 		event.preventDefault();
-		onApply(formState);
-		onClose();
+		setArticleStyles(localStyles);
+		toggleFormVisibility();
 	};
 
-	const handleReset = () => {
-		onReset();
-		onClose();
+	const handleFormReset = () => {
+		setLocalStyles(defaultArticleState);
+		setArticleStyles(defaultArticleState);
+		toggleFormVisibility();
 	};
 
 	return (
 		<>
-			<ArrowButton isOpen={isOpen} onClick={onClose} />
+			<ArrowButton isOpen={isFormOpen} onClick={toggleFormVisibility} />
 			<aside
-				className={clsx(styles.container, { [styles.container_open]: isOpen })}>
-				<form className={styles.form} onSubmit={handleSubmit} ref={formRef}>
+				className={clsx(styles.container, {
+					[styles.container_open]: isFormOpen,
+				})}>
+				<form
+					className={styles.form}
+					onSubmit={handleFormSubmit}
+					onReset={handleFormReset}
+					ref={formRef}>
 					<Text as='h2' size={31} weight={800} uppercase>
 						Задайте параметры
 					</Text>
+
 					<Select
 						title='Шрифт'
-						selected={formState.fontFamilyOption}
+						selected={localStyles.fontFamilyOption}
 						options={fontFamilyOptions}
 						onChange={(selected) =>
 							handleFieldChange('fontFamilyOption', selected)
 						}
 					/>
+
 					<RadioGroup
 						title='Размер шрифта'
 						name='fontSize'
-						selected={formState.fontSizeOption}
+						selected={localStyles.fontSizeOption}
 						options={fontSizeOptions}
 						onChange={(selected) =>
 							handleFieldChange('fontSizeOption', selected)
 						}
 					/>
+
 					<Select
 						title='Цвет шрифта'
-						selected={formState.fontColor}
+						selected={localStyles.fontColor}
 						options={fontColors}
 						onChange={(selected) => handleFieldChange('fontColor', selected)}
 					/>
+
 					<Separator />
+
 					<Select
 						title='Цвет фона'
-						selected={formState.backgroundColor}
+						selected={localStyles.backgroundColor}
 						options={backgroundColors}
 						onChange={(selected) =>
 							handleFieldChange('backgroundColor', selected)
 						}
 					/>
+
 					<Select
 						title='Ширина контента'
-						selected={formState.contentWidth}
+						selected={localStyles.contentWidth}
 						options={contentWidthArr}
 						onChange={(selected) => handleFieldChange('contentWidth', selected)}
 					/>
+
 					<div className={styles.bottomContainer}>
-						<Button
-							title='Сбросить'
-							htmlType='reset'
-							type='clear'
-							onClick={handleReset}
-						/>
+						<Button title='Сбросить' htmlType='reset' type='clear' />
 						<Button title='Применить' htmlType='submit' type='apply' />
 					</div>
 				</form>
